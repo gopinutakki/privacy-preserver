@@ -5,6 +5,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.jsoup.Jsoup;
 import org.jsoup.helper.Validate;
@@ -17,6 +19,7 @@ public class PrivacyChecker {
 	static List<String> websites = new ArrayList<String>();
 	static Links privacyLinks = new Links();
 	static List<Thread> threads = new ArrayList<Thread>();
+	static final int THREADCOUNT = 10;
 	
 	public static void main(String args[]) throws IOException{
 		BufferedReader br = new BufferedReader(new FileReader("websites.txt"));
@@ -29,23 +32,32 @@ public class PrivacyChecker {
 			//getURLs(line.trim());
 		}
 		
+		ExecutorService fetchExecutor = Executors.newFixedThreadPool(THREADCOUNT);
+				
 		for(int count = 0; count < websites.size(); count++){
 			Runnable fetch = new urlRunnable(websites.get(count));
-			Thread fetcher = new Thread(fetch);
-			fetcher.setName(websites.get(count));
-			fetcher.start();
-			threads.add(fetcher);
+			fetchExecutor.execute(fetch);
+//			Thread fetcher = new Thread(fetch);
+//			fetcher.setName(websites.get(count));
+//			fetcher.start();
+//			threads.add(fetcher);			
 		}
 		
-		int running = 0;
-		do{
-			running = 0;
-			for(Thread thread: threads){
-				if(thread.isAlive()){
-					running ++;
-				}
-			}
-		}while(running > 0);
+		while(!fetchExecutor.isTerminated()){
+			
+		}
+		
+		System.out.println("Done Fetching All!");
+		
+//		int running = 0;
+//		do{
+//			running = 0;
+//			for(Thread thread: threads){
+//				if(thread.isAlive()){
+//					running ++;
+//				}
+//			}
+//		}while(running > 0);
 	}
 	
 	public static void getURLs(String url) throws IOException {
