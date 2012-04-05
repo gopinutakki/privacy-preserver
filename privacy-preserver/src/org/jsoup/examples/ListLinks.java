@@ -12,7 +12,7 @@ import java.io.IOException;
  * Example program to list links from a URL.
  */
 public class ListLinks {
-    public static void main(String[] args) throws IOException {
+    public static void main1(String[] args) throws IOException {
         Validate.isTrue(args.length == 1, "usage: supply url to fetch");
         String url = args[0];
         print("Fetching %s...", url);
