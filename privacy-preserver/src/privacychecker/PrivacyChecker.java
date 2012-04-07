@@ -37,27 +37,14 @@ public class PrivacyChecker {
 		for(int count = 0; count < websites.size(); count++){
 			Runnable fetch = new urlRunnable(websites.get(count));
 			fetchExecutor.execute(fetch);
-//			Thread fetcher = new Thread(fetch);
-//			fetcher.setName(websites.get(count));
-//			fetcher.start();
-//			threads.add(fetcher);			
 		}
 		
+		//fetchExecutor.shutdown();
 		while(!fetchExecutor.isTerminated()){
 			
 		}
 		
-		System.out.println("Done Fetching All!");
-		
-//		int running = 0;
-//		do{
-//			running = 0;
-//			for(Thread thread: threads){
-//				if(thread.isAlive()){
-//					running ++;
-//				}
-//			}
-//		}while(running > 0);
+		System.out.println("Done Fetching All!");		
 	}
 	
 	public static void getURLs(String url) throws IOException {
@@ -71,34 +58,14 @@ public class PrivacyChecker {
         Elements imports = doc.select("link[href]");
         String tempURL = "";
         String tempText = "";
-//        print("\nMedia: (%d)", media.size());
-//        for (Element src : media) {
-//            if (src.tagName().equals("img"))
-//                print(" * %s: <%s> %sx%s (%s)",
-//                        src.tagName(), src.attr("abs:src"), src.attr("width"), src.attr("height"),
-//                        trim(src.attr("alt"), 20));
-//            else
-//                print(" * %s: <%s>", src.tagName(), src.attr("abs:src"));
-//        }
-//
-//        print("\nImports: (%d)", imports.size());
-//        for (Element link : imports) {
-//            print(" * %s <%s> (%s)", link.tagName(),link.attr("abs:href"), link.attr("rel"));
-//        }
-//
-//        print("\nLinks: (%d)", links.size());
-//        
         for (Element link : links) {
         	tempURL = link.attr("abs:href");
         	tempText = link.text().trim();
         	
         	if(tempURL.toLowerCase().contains("privacy") || tempText.toLowerCase().contains("privacy"))
         		privacyLinks.add(tempURL, tempText);
-            //print(" * a: <%s>  (%s)", link.attr("abs:href"), trim(link.text(), 35));
-        	//System.out.println(link.attr("abs:href"));
         }
         privacyLinks.print();
-        //System.out.println(doc.text());
     }
 
     private static void print(String msg, Object... args) {
