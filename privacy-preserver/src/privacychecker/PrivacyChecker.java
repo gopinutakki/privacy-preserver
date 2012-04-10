@@ -49,7 +49,7 @@ public class PrivacyChecker {
 	
 	public static void getURLs(String url) throws IOException {
         //String url = "http://www.facebook.com";
-        print("Fetching %s...", url);
+        //print("Fetching %s...", url);
 
         Document doc = Jsoup.connect(url).userAgent("Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/535.2 (KHTML, like Gecko) Chrome/18.0.1025.142 Safari/535.2").get();
         
@@ -65,7 +65,7 @@ public class PrivacyChecker {
         	if(tempURL.toLowerCase().contains("privacy") || tempText.toLowerCase().contains("privacy"))
         		privacyLinks.add(tempURL, tempText);
         }
-        privacyLinks.print();
+        //privacyLinks.print();
     }
 
     private static void print(String msg, Object... args) {
@@ -104,10 +104,13 @@ class Links{
 }
 
 class Link{
+	String domainURL = "";
 	String url = "";
 	String text = "";
 	
 	public Link(String urlData, String textData){
+		String[] domain = urlData.split("/");
+		this.domainURL = domain[2];
 		this.url = urlData;
 		this.text = textData;
 	}
@@ -125,7 +128,6 @@ class urlRunnable implements Runnable{
 		try {
 			PrivacyChecker.getURLs(url);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			//e.printStackTrace();
 			System.err.println("Could not get: " + url);
 		}
