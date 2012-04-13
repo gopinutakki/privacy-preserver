@@ -25,6 +25,7 @@ public class PrivacyChecker {
 	static List<Thread> threads = new ArrayList<Thread>();
 	static Database dbconn = null;
 
+	static String USERAGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.162 Safari/535.19";
 	static final int THREADCOUNT = 10;
 
 	public static void main(String args[]) throws IOException,
@@ -42,7 +43,7 @@ public class PrivacyChecker {
 		while ((line = br.readLine()) != null) {
 			line.trim();
 			line = "http://www." + line;
-			websites.add(line);
+			websites.add(line);			
 			// getURLs(line.trim());
 		}
 
@@ -67,42 +68,38 @@ public class PrivacyChecker {
 		boolean urlFound = false;
 		Queue<String> urlQueue = new LinkedList<String>();
 		ArrayList<String> urlVisited = new ArrayList<String>();
-		
+
 		urlQueue.add(url);
 
 		while (!urlQueue.isEmpty() && urlVisited.size() < 20) {
 			urlFound = false;
-			url = urlQueue.poll();			
-			Document doc = Jsoup
-					.connect(url)
-					.userAgent(
-							"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.19 (KHTML, like Gecko) Chrome/18.0.1025.151 Safari/535.19")
-					.get();
+			url = urlQueue.poll();
+			Document doc = Jsoup.connect(url).userAgent(USERAGENT).get();
 
 			urlVisited.add(url);
 			addURL(url, doc.text());
-			
+
 			Elements links = doc.select("a[href]");
 			Elements media = doc.select("[src]");
 			Elements imports = doc.select("link[href]");
 			String tempURL = "";
 			String tempText = "";
-			for (Element link : links) {							
+			for (Element link : links) {
 				tempURL = link.attr("abs:href");
-				tempText = link.text().trim();				
+				tempText = link.text().trim();
 				if (tempURL.toLowerCase().contains("privacy")
 						|| tempText.toLowerCase().contains("privacy")) {
 					tempText.replaceAll("\n", "");
 					tempText.replaceAll("\t", "");
 					// System.out.println(doc.text());
 
-					for(int index = 0; index < urlVisited.size(); index++){
-						if(urlVisited.get(index).equals(tempURL)){
+					for (int index = 0; index < urlVisited.size(); index++) {
+						if (urlVisited.get(index).equals(tempURL)) {
 							urlFound = true;
 							break;
 						}
 					}
-					if (!urlFound) {						
+					if (!urlFound) {
 						urlQueue.add(tempURL);
 					}
 					urlFound = false;
@@ -126,8 +123,8 @@ public class PrivacyChecker {
 	private static void addURL(String url, String text) throws SQLException {
 		String[] domain = url.split("/");
 		String domainURL = domain[2];
-		if(domainURL.contains(":"))
-			domainURL = domainURL.substring(0, domainURL.indexOf(":"));			
+		if (domainURL.contains(":"))
+			domainURL = domainURL.substring(0, domainURL.indexOf(":"));
 		url.replaceAll("'", "");
 		url.replaceAll("\"", "");
 		url = url.replaceAll("[^a-zA-Z 0-9]+", "");
