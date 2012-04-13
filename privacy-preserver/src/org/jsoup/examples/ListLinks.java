@@ -12,9 +12,10 @@ import java.io.IOException;
  * Example program to list links from a URL.
  */
 public class ListLinks {
-    public static void main1(String[] args) throws IOException {
-        Validate.isTrue(args.length == 1, "usage: supply url to fetch");
-        String url = args[0];
+    public static void main(String[] args) throws IOException {
+        //Validate.isTrue(args.length == 1, "usage: supply url to fetch");
+        //String url = args[0];
+        String url = "http://www.facebook.com/about/privacy/your-info-on-other";
         print("Fetching %s...", url);
 
         Document doc = Jsoup.connect(url).get();
@@ -22,6 +23,7 @@ public class ListLinks {
         Elements media = doc.select("[src]");
         Elements imports = doc.select("link[href]");
 
+        System.out.println(doc.text());
         print("\nMedia: (%d)", media.size());
         for (Element src : media) {
             if (src.tagName().equals("img"))
