@@ -64,17 +64,15 @@ public class PrivacyChecker {
 	public static void getURLs(String url) throws IOException, SQLException {
 		// url = "http://www.facebook.com";
 		// print("Fetching %s...", url);
-		int count = 0;
 		boolean urlFound = false;
 		Queue<String> urlQueue = new LinkedList<String>();
 		ArrayList<String> urlVisited = new ArrayList<String>();
 		
 		urlQueue.add(url);
 
-		while (!urlQueue.isEmpty() && count < 20) {
+		while (!urlQueue.isEmpty() && urlVisited.size() < 20) {
 			urlFound = false;
 			url = urlQueue.poll();			
-			count ++;
 			Document doc = Jsoup
 					.connect(url)
 					.userAgent(
@@ -82,6 +80,7 @@ public class PrivacyChecker {
 					.get();
 
 			urlVisited.add(url);
+			addURL(url, doc.text());
 			
 			Elements links = doc.select("a[href]");
 			Elements media = doc.select("[src]");
@@ -103,10 +102,8 @@ public class PrivacyChecker {
 							break;
 						}
 					}
-					if (!urlFound) {
-						addURL(tempURL, tempText);
+					if (!urlFound) {						
 						urlQueue.add(tempURL);
-						urlVisited.add(tempURL);
 					}
 					urlFound = false;
 				}
@@ -129,9 +126,15 @@ public class PrivacyChecker {
 	private static void addURL(String url, String text) throws SQLException {
 		String[] domain = url.split("/");
 		String domainURL = domain[2];
-		System.out.println(domain);
+		if(domainURL.contains(":"))
+			domainURL = domainURL.substring(0, domainURL.indexOf(":"));			
+		url.replaceAll("'", "");
+		url.replaceAll("\"", "");
+		url = url.replaceAll("[^a-zA-Z 0-9]+", "");
 		text.replaceAll("'", "");
 		text.replaceAll("\"", "");
+		text = text.replaceAll("[^a-zA-Z 0-9]+", "");
+		System.out.println(domainURL);
 		dbconn.addURL(domainURL, url, text);
 	}
 }

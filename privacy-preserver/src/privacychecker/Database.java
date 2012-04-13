@@ -14,12 +14,17 @@ public class Database {
 		conn = DatabaseConnection.getConnection();
 	}
 
-	public void addURL(String domain, String url, String content)
-			throws SQLException {
-		Statement stmt = conn.createStatement();
-		stmt.executeUpdate("insert into dps (domain, url, content) values ('" + domain + "', '" + url
-				+ "', '" + content + "');");
-		stmt.close();
+	public void addURL(String domain, String url, String content) {
+		Statement stmt;
+		try {
+			stmt = conn.createStatement();
+			stmt.executeUpdate("insert into dps (domain, url, content) values ('"
+					+ domain + "', '" + url + "', '" + content + "');");
+			stmt.close();
+		} catch (SQLException e) {
+			System.out.println("ERROR; " + url);
+		}
+
 	}
 
 	public String getWebsiteData(String website) throws SQLException {
