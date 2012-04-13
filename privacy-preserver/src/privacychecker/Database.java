@@ -13,7 +13,7 @@ public class Database {
 	public Database() throws ClassNotFoundException, SQLException {
 		conn = DatabaseConnection.getConnection();
 	}
-
+	
 	public void addURL(String domain, String url, String content) {
 		Statement stmt;
 		try {
@@ -22,9 +22,8 @@ public class Database {
 					+ domain + "', '" + url + "', '" + content + "');");
 			stmt.close();
 		} catch (SQLException e) {
-			System.out.println("ERROR; " + url);
+			System.out.println("ERROR: " + url);
 		}
-
 	}
 
 	public String getWebsiteData(String website) throws SQLException {
@@ -34,7 +33,7 @@ public class Database {
 				+ website + "'");
 
 		while (result.next()) {
-			content += result.getString(3);
+			content += "\n" + result.getString(3);
 		}
 
 		result.close();
@@ -43,6 +42,21 @@ public class Database {
 		return content;
 	}
 
+	public String getWebsitesDistinct() throws SQLException{
+		String content = "";
+		Statement stmt = conn.createStatement();
+		ResultSet result = stmt.executeQuery("select distinct domain from dps;");
+
+		while (result.next()) {
+			content += result.getString(1) + " ";
+		}
+
+		result.close();
+		stmt.close();
+
+		return content;
+	}
+	
 	public void destroy() throws SQLException {
 		conn.close();
 	}

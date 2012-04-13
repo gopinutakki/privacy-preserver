@@ -6,8 +6,11 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,7 +46,7 @@ public class PrivacyChecker {
 		while ((line = br.readLine()) != null) {
 			line.trim();
 			line = "http://www." + line;
-			websites.add(line);			
+			websites.add(line);
 			// getURLs(line.trim());
 		}
 
@@ -63,46 +66,42 @@ public class PrivacyChecker {
 	}
 
 	public static void getURLs(String url) throws IOException, SQLException {
-		// url = "http://www.facebook.com";
-		// print("Fetching %s...", url);
-		boolean urlFound = false;
+//		url = "http://news.cnet.com";
+//		print("Fetching %s...", url);
 		Queue<String> urlQueue = new LinkedList<String>();
-		ArrayList<String> urlVisited = new ArrayList<String>();
+		HashSet<String> urlVisited = new HashSet<String>();
+		String tempURL = "";
+		String tempText = "";
 
 		urlQueue.add(url);
 
-		while (!urlQueue.isEmpty() && urlVisited.size() < 20) {
-			urlFound = false;
+		while (true) {
+			if (urlQueue.isEmpty() || urlVisited.size() > 20)
+				break;
+
 			url = urlQueue.poll();
 			Document doc = Jsoup.connect(url).userAgent(USERAGENT).get();
-
+			
 			urlVisited.add(url);
-			addURL(url, doc.text());
+			addURL(url, doc.body().text());
 
 			Elements links = doc.select("a[href]");
 			Elements media = doc.select("[src]");
 			Elements imports = doc.select("link[href]");
-			String tempURL = "";
-			String tempText = "";
 			for (Element link : links) {
 				tempURL = link.attr("abs:href");
 				tempText = link.text().trim();
+
 				if (tempURL.toLowerCase().contains("privacy")
 						|| tempText.toLowerCase().contains("privacy")) {
 					tempText.replaceAll("\n", "");
 					tempText.replaceAll("\t", "");
 					// System.out.println(doc.text());
 
-					for (int index = 0; index < urlVisited.size(); index++) {
-						if (urlVisited.get(index).equals(tempURL)) {
-							urlFound = true;
-							break;
-						}
+					if (!urlVisited.contains(tempURL)) {
+						if (!urlQueue.contains(tempURL))
+							urlQueue.add(tempURL);
 					}
-					if (!urlFound) {
-						urlQueue.add(tempURL);
-					}
-					urlFound = false;
 				}
 			}
 		}
