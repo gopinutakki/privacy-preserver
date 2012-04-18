@@ -55,7 +55,7 @@ public class PrivacyChecker {
 
 		for (int count = 0; count < websites.size(); count++) {
 			Runnable fetch = new urlRunnable(websites.get(count));
-			fetchExecutor.execute(fetch);
+			fetchExecutor.execute(fetch);			
 		}
 
 		fetchExecutor.shutdown();
@@ -66,25 +66,36 @@ public class PrivacyChecker {
 	}
 
 	public static void getURLs(String url) throws IOException, SQLException {
-//		url = "http://news.cnet.com";
+//		url = "http://www.acrobat.com";
 //		print("Fetching %s...", url);
+		boolean homePage = true;
 		Queue<String> urlQueue = new LinkedList<String>();
 		HashSet<String> urlVisited = new HashSet<String>();
 		String tempURL = "";
 		String tempText = "";
-
+		String baseURI = "";
+		
 		urlQueue.add(url);
-
+		
 		while (true) {
-			if (urlQueue.isEmpty() || urlVisited.size() > 20)
+			if (urlQueue.isEmpty() || urlVisited.size() > 3)
 				break;
 
 			url = urlQueue.poll();
-			Document doc = Jsoup.connect(url).userAgent(USERAGENT).get();
+			baseURI = Jsoup.connect(url).userAgent(USERAGENT).get().baseUri();
 			
+//			Elements meta = doc.select("html head meta");
+//		    if (meta.attr("http-equiv").contains("REFRESH"))
+//		        doc = Jsoup.connect(meta.attr("content").split("=")[1]).get();
+					    
+		    Document doc = Jsoup.connect(baseURI).userAgent(USERAGENT).get();
+		    
 			urlVisited.add(url);
-			addURL(url, doc.body().text());
-
+			if(!homePage){
+				addURL(url, doc.body().text());
+			}			
+			homePage = false;
+			
 			Elements links = doc.select("a[href]");
 			Elements media = doc.select("[src]");
 			Elements imports = doc.select("link[href]");

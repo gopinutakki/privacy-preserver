@@ -111,7 +111,7 @@ public class PrivacyClassifier {
 		stringToVector.setInputFormat(trainingSet);
 		stringToVector.setOutputWordCounts(true);
 		Instances filteredData = Filter.useFilter(trainingSet, stringToVector);
-
+		
 		// For now, using only training set of 80 samples. 40 for spam and 40 for non-spam.		
 		// Instances filteredTestData = Filter.useFilter(testingSet, stringToVector);
 
