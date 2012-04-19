@@ -14,12 +14,19 @@ package privacychecker;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Scanner;
 
+import weka.attributeSelection.AttributeSelection;
+import weka.attributeSelection.LatentSemanticAnalysis;
+import weka.attributeSelection.Ranker;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.bayes.NaiveBayes;
@@ -35,6 +42,7 @@ import weka.core.Instances;
 import weka.core.converters.ArffSaver;
 import weka.core.converters.ConverterUtils.DataSource;
 import weka.filters.Filter;
+import weka.filters.unsupervised.attribute.Remove;
 import weka.filters.unsupervised.attribute.StringToWordVector;
 
 public class PrivacyDataset {
@@ -45,6 +53,7 @@ public class PrivacyDataset {
 	static FastVector records;
 	static Instances stmtSet;
 	static Instances evaluationSet;
+	static HashSet<String> keys = new HashSet<String>();
 
 	/*
 	 * Begin here....
@@ -56,12 +65,12 @@ public class PrivacyDataset {
 
 		// classifier.performClustering(new SimpleKMeans(), "KMEANS CLUSTERER");
 
-		//classifier.performClassification(new NaiveBayesMultinomial(),
-			//	"NAIVE BAYES MULTINOMIAL");
+		// classifier.performClassification(new NaiveBayesMultinomial(),
+		// "NAIVE BAYES MULTINOMIAL");
 
 		// Other algorithms
 		// classifier.performClassification(new NaiveBayes(), "NAIVE BAYES");
-		classifier.performClassification(new J48(), "J48 (C4.5)");
+		 classifier.performClassification(new J48(), "J48 (C4.5)");
 		// classifier.performClassification(new AdaBoostM1(), "ADA BOOST M1");
 	}
 
@@ -182,26 +191,64 @@ public class PrivacyDataset {
 		DataSource src = new DataSource("datasetCleaned.arff");
 		stmtSet = src.getDataSet();
 
-		StringToWordVector stringToVector = new StringToWordVector(1000);
+		StringToWordVector stringToVector = new StringToWordVector(5000);
 		// stringToVector.setUseStoplist(true);
 		stringToVector.setInputFormat(stmtSet);
 		// stringToVector.setOutputWordCounts(true);
 		stringToVector
 				.setOptions(weka.core.Utils
-						.splitOptions("-R first-last -W 1000 -prune-rate -1.0 -C -N 0 -S -stemmer weka.core.stemmers.SnowballStemmer -M 1 -tokenizer \"weka.core.tokenizers.NGramTokenizer -delimiters=\" \r\n\t.,;:'\"()?!\" -max 7 -min 7\"")); // -delimiters
-		// \"
-		// \r\n\t.,;:\'\"()?!\"
+						.splitOptions("-R first-last -W 5000 -prune-rate -1.0 -C -N 0 -M 1 -tokenizer \"weka.core.tokenizers.NGramTokenizer -delimiters=\" \r\n\t.,;:'\"()?!\" -max 7 -min 7\""));
+		//.splitOptions("-R first-last -W 5000 -prune-rate -1.0 -C -N 0 -S -stemmer weka.core.stemmers.SnowballStemmer -M 1 -tokenizer \"weka.core.tokenizers.NGramTokenizer -delimiters=\" \r\n\t.,;:'\"()?!\" -max 7 -min 7\"")); // -delimiters
+		
+		
 		Instances filteredData = Filter.useFilter(stmtSet, stringToVector);
 		filteredData.setClassIndex(0);
+
+		// Remove unnecessary integers.
+		getKeywords("keywords.txt");
+
+		Remove remIndices = new Remove();
+		Boolean found = false;
+		ArrayList<Integer> indicesToRemove = new ArrayList<Integer>();
+
+		for (int i = 1; i < filteredData.numAttributes(); i++) {
+			found = false;
+			String dataName[] = filteredData.attribute(i).name().split(" ");
+			for (int index = 0; index < dataName.length; index++) {
+				if (keys.contains(dataName[index])) {
+					found = true;
+					break;
+				}
+			}
+			
+			if(!found){
+				indicesToRemove.add(new Integer(i));
+			}
+		}
+
+		int[] indices = new int[indicesToRemove.size()];
+		for(int index = 0; index < indicesToRemove.size(); index++){
+			indices[index] = indicesToRemove.get(index).intValue();
+		}
+		
+		remIndices.setAttributeIndicesArray(indices);
+		remIndices.setInvertSelection(false);
+		remIndices.setInputFormat(filteredData);
+		filteredData.setClassIndex(0);
+		filteredData = Filter.useFilter(filteredData, remIndices);
+		
 		// For now, using only training set of 80 samples. 40 for spam and 40
 		// for non-spam.
 		// Instances filteredTestData = Filter.useFilter(testingSet,
 		// stringToVector);
-
+		filteredData.setClassIndex(0);
 		// Classifier cModel = (Classifier) new NaiveBayes();
 		Classifier cModel = (Classifier) model;
 		cModel.buildClassifier(filteredData);
 
+		System.out.println(cModel.toString());
+		
+	
 		// Print the predictions.
 		for (int i = 0; i < filteredData.numInstances(); i++) {
 			double pred = cModel.classifyInstance(filteredData.instance(i));
@@ -222,54 +269,74 @@ public class PrivacyDataset {
 		System.out.println(eTest.toSummaryString(true));
 		System.out.println(eTest.toClassDetailsString());
 		System.out.println(eTest.toMatrixString());
-		
-		
+
 		// other options
-	    int seed  = 1;
-	    int folds = 10;
+		int seed = 1;
+		int folds = 10;
 
-	    
 		// randomize data
-	    Random rand = new Random(seed);
-	    Instances randData = new Instances(filteredData);
-	    randData.setClassIndex(0);
-	    
-	    randData.randomize(rand);
-	    if (randData.classAttribute().isNominal())
-	      randData.stratify(folds);
+		Random rand = new Random(seed);
+		Instances randData = new Instances(filteredData);
+		randData.setClassIndex(0);
 
-	    // perform cross-validation
-	    Evaluation eval = new Evaluation(randData);
-	    for (int n = 0; n < folds; n++) {
-	      Instances train = randData.trainCV(folds, n);
-	      Instances test = randData.testCV(folds, n);
-	      // the above code is used by the StratifiedRemoveFolds filter, the
-	      // code below by the Explorer/Experimenter:
-	      // Instances train = randData.trainCV(folds, n, rand);
+		randData.randomize(rand);
+		if (randData.classAttribute().isNominal())
+			randData.stratify(folds);
 
-	      // build and evaluate classifier
-	      Classifier clsCopy = Classifier.makeCopy(cModel);
-	      clsCopy.buildClassifier(train);
-	      eval.evaluateModel(clsCopy, test);
-	    }
-	    
-	    System.out.println("===========Next Output (Cross Validation 10-Fold)==");
-	    
-	 // Print the predictions.
-	 		for (int i = 0; i < filteredData.numInstances(); i++) {
-	 			double pred = cModel.classifyInstance(filteredData.instance(i));
-	 			System.out.print("ID: " + filteredData.instance(i).value(0));
-	 			System.out.print(", actual: "
-	 					+ filteredData.classAttribute().value(
-	 							(int) filteredData.instance(i).classValue()));
-	 			System.out.println(", predicted: "
-	 					+ filteredData.classAttribute().value((int) pred));
-	 		}
+		// AttributeSelection attSelection = new AttributeSelection();
+		// LatentSemanticAnalysis lsa = new LatentSemanticAnalysis();
+		// lsa.setMaximumAttributeNames(-1);
+		//
+		// Ranker rank = new Ranker();
+		//
+		// attSelection.setEvaluator(lsa);
+		// attSelection.setSearch(rank);
+		// attSelection.setRanking(true);
+		// attSelection.SelectAttributes(randData);
+		// randData = attSelection.reduceDimensionality(randData);
+		//
 
-	 		
-	    System.out.println(eval.toSummaryString(true));
+		// perform cross-validation
+		Evaluation eval = new Evaluation(randData);
+		// eval.crossValidateModel(cModel, randData, 10, new Random(1));
+
+		for (int n = 0; n < folds; n++) {
+			Instances train = randData.trainCV(folds, n);
+			Instances test = randData.testCV(folds, n);
+			// the above code is used by the StratifiedRemoveFolds filter, the
+			// code below by the Explorer/Experimenter:
+			// Instances train = randData.trainCV(folds, n, rand);
+
+			// build and evaluate classifier
+			Classifier clsCopy = Classifier.makeCopy(cModel);
+			clsCopy.buildClassifier(train);
+			eval.evaluateModel(clsCopy, test);
+		}
+
+		System.out
+				.println("===========Next Output (Cross Validation 10-Fold)==");
+
+		// Print the predictions.
+		for (int i = 0; i < filteredData.numInstances(); i++) {
+			double pred = cModel.classifyInstance(filteredData.instance(i));
+			System.out.print("ID: " + filteredData.instance(i).value(0));
+			System.out.print(", actual: "
+					+ filteredData.classAttribute().value(
+							(int) filteredData.instance(i).classValue()));
+			System.out.println(", predicted: "
+					+ filteredData.classAttribute().value((int) pred));
+		}
+		
+		System.out.println(eval.toSummaryString(true));
 		System.out.println(eval.toClassDetailsString());
-		System.out.println(eval.toMatrixString());		
+		System.out.println(eval.toMatrixString());
+	}
+
+	private void getKeywords(String fileName) throws FileNotFoundException {
+		Scanner keyScanner = new Scanner(new FileReader(fileName));
+		while (keyScanner.hasNext()) {
+			keys.add(keyScanner.next());
+		}
 	}
 
 	private void performClustering(SimpleKMeans model, String modelName)
@@ -281,7 +348,7 @@ public class PrivacyDataset {
 		stringToVector.setOutputWordCounts(true);
 		stringToVector
 				.setOptions(weka.core.Utils
-					.splitOptions("-R first-last -W 1000 -prune-rate -1.0 -C -N 0 -S -stemmer weka.core.stemmers.SnowballStemmer -M 1 -tokenizer \"weka.core.tokenizers.NGramTokenizer -max 4 -min 1\""));
+						.splitOptions("-R first-last -W 1000 -prune-rate -1.0 -C -N 0 -S -stemmer weka.core.stemmers.SnowballStemmer -M 1 -tokenizer \"weka.core.tokenizers.NGramTokenizer -max 4 -min 1\""));
 		Instances filteredData = Filter.useFilter(stmtSet, stringToVector);
 
 		// For now, using only training set of 80 samples. 40 for spam and 40
